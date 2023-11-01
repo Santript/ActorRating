@@ -1,5 +1,8 @@
 from flask import Flask, request, jsonify, render_template
 import pymysql
+import uuid
+import datetime
+import time
 
 app = Flask(__name__)
 
@@ -15,21 +18,25 @@ mysql = pymysql.connect(
     db = app.config['MYSQL_DB']
 )
 
+def addInformation(firstName, lastName, movieTitle, genre, rating, review):
+    #add the actor first and last name
+    actor_id = addActor(firstName, lastName)
+
+    #add the movie and movie genre
+    movie_id = addMovie(movieTitle, genre)
+    #add information to Actor_Movie table
+    addActorMovie(actor_id, movie_id)
+
+    #add the rating and review to Ratings table
+    addRating(rating, review, actor_id)
+
 def addActor(firstName, lastName):
+    actor_id = str(uuid.uuid4())
     try:
         cursor = mysql.cursor()
 
-        cursor.execute("SELECT actor_id FROM Actors ORDER BY actor_id DESC LIMIT 1")
-        mysql.commit()
-        prev_id = cursor.fetchone()
-
-        if prev_id is None:
-            prev_id = 1
-        else:
-            prev_id = prev_id[0] + 1
-
         #prepared statement
-        actorsTable = "insert into Actors values(" + str(prev_id) + ",\'" + firstName + "\',\'" + lastName + "\');"
+        actorsTable = "insert into Actors values(\'" + actor_id + "\',\'" + firstName + "\',\'" + lastName + "\');"
         cursor.execute(actorsTable)
         mysql.commit()
         results = cursor.fetchall()
@@ -41,21 +48,62 @@ def addActor(firstName, lastName):
     except pymysql.Error as e:
         print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
     
+    return actor_id
+
 def addMovie(movieTitle, genre):
+    movie_id = str(uuid.uuid4())
     try:
         cursor = mysql.cursor()
 
-        cursor.execute("SELECT movie_id FROM Movies ORDER BY movie_id DESC LIMIT 1")
-        mysql.commit()
-        prev_id = cursor.fetchone()
-
-        if prev_id is None:
-            prev_id = 1
-        else:
-            prev_id = prev_id[0] + 1
-        
-        moviesTable = "insert into Movies values(" + str(prev_id) + ",\'" + movieTitle + "\',\'" + genre + "\');"
+        moviesTable = "insert into Movies values(\'" + movie_id + "\',\'" + movieTitle + "\',\'" + genre + "\');"
         cursor.execute(moviesTable)
+        mysql.commit()
+        results = cursor.fetchall()
+
+        for row in results:
+            print(row)
+
+        cursor.close()
+    except pymysql.Error as e:
+        print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
+    
+    return movie_id
+
+def addActorMovie(a_id, m_id):
+    actor_movie_id = str(uuid.uuid4())
+    
+    try:
+        cursor = mysql.cursor()
+
+        # actor_movie_proc = "CREATE PROCEDURE InsertActorMovie(IN p_actor_movie_id VARCHAR(50),IN p_actor_id VARCHAR(50),IN p_movie_id VARCHAR(50)\n BEGIN\n INSERT INTO Actor_Movie VALUES (p_actor_movie_id, p_actor_id, p_movie_id);\n END;"
+        # print()
+        # print(actor_movie_proc)
+        # print()
+
+        actor_movie_table = "insert into Actor_Movie values(\'" + actor_movie_id + "\',\'" + a_id + "\',\'" + m_id + "\');"
+
+        cursor.execute(actor_movie_table)
+        mysql.commit()
+
+        print("Stored Procedure has been created!")
+        #cursor.callproc('InsertActorMovie', [actor_movie_id,a_id,m_id])
+
+        cursor.close()
+    except pymysql.Error as e:
+        print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
+
+def addRating(rating, review, actor_id):
+    try:
+        cursor = mysql.cursor()
+
+        rating_id = str(uuid.uuid4())
+        user_id = str(uuid.uuid4())
+        ts = time.time()
+        timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+
+        reviewTable = "insert into Ratings values(\'" + rating_id + "\',\'" + actor_id + "\',\'" + user_id + "\'," + rating + ",\'" + review + "\',\'" + timestamp + "\');"
+
+        cursor.execute(reviewTable)
         mysql.commit()
         results = cursor.fetchall()
 
@@ -78,9 +126,10 @@ def parseDataInsert():
         genre = request.form.get("Genre")
         firstName = actorName.split()[0]
         lastName = actorName.split()[1]
+        rating = request.form.get("Rating")
+        review = request.form.get("review")
 
-        addActor(firstName, lastName)
-        addMovie(movieName, genre)
+        addInformation(firstName, lastName, movieName, genre, rating, review)
         
     return render_template("insert.html")
 
