@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import pymysql
 
 app = Flask(__name__)
@@ -15,7 +15,7 @@ mysql = pymysql.connect(
     db = app.config['MYSQL_DB']
 )
 
-def addActor(firstName, lastName, movie, rating, review):
+def addActor(firstName, lastName):
     try:
         cursor = mysql.cursor()
 
@@ -48,7 +48,7 @@ def addMovie(movieTitle, genre):
         cursor.execute("SELECT movie_id FROM Movies ORDER BY movie_id DESC LIMIT 1")
         mysql.commit()
         prev_id = cursor.fetchone()
-        
+
         if prev_id is None:
             prev_id = 1
         else:
@@ -66,11 +66,24 @@ def addMovie(movieTitle, genre):
     except pymysql.Error as e:
         print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
 
-@app.route('/')
+@app.route('/insert')
 def run():
-    return 'Flask Server Running'
+    return render_template("insert.html")
+
+@app.route('/insert_submit', methods=["POST", "GET"])
+def parseDataInsert():
+    if request.method == "POST":
+        actorName = request.form.get("Actor")
+        movieName = request.form.get("Movie")
+        genre = request.form.get("Genre")
+        firstName = actorName.split()[0]
+        lastName = actorName.split()[1]
+
+        addActor(firstName, lastName)
+        addMovie(movieName, genre)
+        
+    return render_template("insert.html")
+
 
 if __name__ == '__main__':
-    addActor("Adam", "Sandler", "Happy Gilmore", 5, "Such a good movie.")
-    addMovie("Happy Gilmore", "Comedy")
     app.run(debug=False)
