@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ActorRating Delete</title>
+    <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='main.css') }}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <h1 style="text-align: center;">Actor Ratings: Delete</h1>
+    <br><br>
+    <h3>Rows you added:</h3>
+    <table border=1 style="text-align: center; align-items: center;margin-left:auto;margin-right:auto;">
+        <tbody>
+            <tr>
+                <th>Actor Name</th>
+                <th>Rating</th>
+                <th>Review</th>
+                <th>Timestamp</th>
+            </tr>
+            
+            {% for row in res %}
+                <tr>
+                    {% for item in row %}
+                        <td>{{ item }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <br>
+    <br>
+    <form action="/delete_submit" method="post">
+        Actors to delete: <br />
+        <textarea id="actorDel" name="actorDel" rows="4" cols="50">Actor1,Actor2,Actor3</textarea>
+        <br/>
+        <br>
+        <button type="submit" id="delsubmit">Submit</button>
+    </form>
+    <br>
+    <a href="http://127.0.0.1:5000/insert" type="button" class="bottom"><button>Insert</button></a>
+</body>
+</html>

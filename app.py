@@ -92,12 +92,12 @@ def addActorMovie(a_id, m_id):
     except pymysql.Error as e:
         print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
 
+user_id = str(uuid.uuid4())
 def addRating(rating, review, actor_id):
     try:
         cursor = mysql.cursor()
 
         rating_id = str(uuid.uuid4())
-        user_id = str(uuid.uuid4())
         ts = time.time()
         timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
@@ -110,6 +110,52 @@ def addRating(rating, review, actor_id):
         for row in results:
             print(row)
 
+        cursor.close()
+    except pymysql.Error as e:
+        print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
+
+def showRowsToDelete():
+    try:
+        cursor = mysql.cursor()
+
+        reviewTable = "select * from Ratings where user_id=\'9122bbf7-26cd-49e4-bf64-72a29a329f6c\';"
+
+        cursor.execute(reviewTable)
+        mysql.commit()
+        results = cursor.fetchall()
+        an = []
+
+        resultsList = [list(i) for i in results]
+        for i in range(len(resultsList)):
+            actorname = "select first_name,last_name from actors where actor_id=\'" + resultsList[i][1] + "\';"
+            cursor.execute(actorname)
+            mysql.commit()
+            an.append(cursor.fetchall())
+            resultsList[i].pop(0)
+            resultsList[i].pop(0)
+            resultsList[i].pop(0)
+
+        cursor.close()
+        
+        anList = [list(i) for i in an]
+        for i in range(len(resultsList)):
+            resultsList[i].insert(0, anList[i][0][0] + " " + anList[i][0][1])
+
+        return resultsList
+    except pymysql.Error as e:
+        print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
+
+def deleteActors(actorNames):
+    try:
+        cursor = mysql.cursor()
+
+        for actor in actorNames:
+
+            delAct = "delete from Ratings where user_id=\'9122bbf7-26cd-49e4-bf64-72a29a329f6c\' and actor_id=(select actor_id from actors where first_name=\'" + actor.split()[0] + "\' and last_name=\'" + actor.split()[1] + "\');"
+
+            cursor.execute(delAct)
+            mysql.commit()
+        
         cursor.close()
     except pymysql.Error as e:
         print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
@@ -133,6 +179,20 @@ def parseDataInsert():
         
     return render_template("insert.html")
 
+@app.route('/delete', methods=["POST", "GET"])
+def parseDeleteData():
+    res = showRowsToDelete()
+    #print(res)
+    return render_template("delete.html", res=res)
+
+@app.route('/delete_submit', methods=["POST", "GET"])
+def queryDelete():
+    if request.method == "POST":
+        deleteNames = request.form.get("actorDel")
+        deleteActors(deleteNames.split(','))
+
+    #res = showRowsToDelete()
+    return render_template("insert.html")
 
 if __name__ == '__main__':
     app.run(debug=False)

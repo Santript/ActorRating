@@ -3,29 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <title>ActorRating Insert</title>
+    <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='main.css') }}">
 </head>
 <body>
     <h1 style="text-align: center;">Actor Ratings: Insert</h1>
     <br>
     <form action="/insert_submit" method="post">
-    <label for="Actor">Enter a New Actor Name:</label>
-    <input type="text" id="Actor" name="Actor">
-    <br><br>
-    <label for="Movie">Which movie did they act in:</label>
-    <input type="text" id="Movie" name="Movie">
-    <br><br>
-    <label for="Genre">Enter in the Movie Genre:</label>
-    <input type="text" id="Genre" name="Genre">
-    <br><br>
-    <label for="Rating">Enter in the Actor Rating:</label>
-    <input type="text" id="Rating" name="Rating">
-    <br><br><br>
+        <label for="Actor">Enter a New Actor Name:</label>
+        <input type="text" id="Actor" name="Actor">
+        <br><br>
+        <label for="Movie">Which movie did they act in:</label>
+        <input type="text" id="Movie" name="Movie">
+        <br><br>
+        <label for="Genre">Enter in the Movie Genre:</label>
+        <input type="text" id="Genre" name="Genre">
+        <br><br>
+        <label for="Rating">Enter in the Actor Rating:</label>
+        <input type="text" id="Rating" name="Rating">
+        <br><br><br>
 
-    <label for="review">Review of Actor:</label>
-    <textarea id="review" name="review" rows="4" cols="50">
-        Enter in your review.
-    </textarea>
-    <br><br>
-    <button type="submit">Submit</button>
+        <label for="review">Review of Actor:</label>
+        <textarea id="review" name="review" rows="4" cols="50">Enter Review</textarea>
+        <br><br>
+        <button type="submit">Submit</button>
+    </form>
+    <a href="http://127.0.0.1:5000/delete" type="button" class="bottom"><button>Delete</button></a>
 </body>
 </html>
