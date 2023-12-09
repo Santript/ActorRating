@@ -85,7 +85,7 @@ def addActorMovie(a_id, m_id):
         cursor.execute(actor_movie_table)
         mysql.commit()
 
-        print("Stored Procedure has been created!")
+        #print("Stored Procedure has been created!")
         #cursor.callproc('InsertActorMovie', [actor_movie_id,a_id,m_id])
 
         cursor.close()
@@ -118,7 +118,8 @@ def showRowsToDelete():
     try:
         cursor = mysql.cursor()
 
-        reviewTable = "select * from Ratings where user_id=\'9122bbf7-26cd-49e4-bf64-72a29a329f6c\';"
+        #reviewTable = "select * from Ratings where user_id=\'" + user_id +"\';"
+        reviewTable = "select * from Ratings where user_id=\'984088f9-fd95-4593-b9af-cfdffdad60df\';"
 
         cursor.execute(reviewTable)
         mysql.commit()
@@ -150,12 +151,34 @@ def deleteActors(actorNames):
         cursor = mysql.cursor()
 
         for actor in actorNames:
-
-            delAct = "delete from Ratings where user_id=\'9122bbf7-26cd-49e4-bf64-72a29a329f6c\' and actor_id=(select actor_id from actors where first_name=\'" + actor.split()[0] + "\' and last_name=\'" + actor.split()[1] + "\');"
+            #984088f9-fd95-4593-b9af-cfdffdad60dfs
+            #delAct = "delete from Ratings where user_id=\'" + user_id + "\' and actor_id=(select actor_id from actors where first_name=\'" + actor.split()[0] + "\' and last_name=\'" + actor.split()[1] + "\');"
+            delAct = "delete from Ratings where user_id=\'984088f9-fd95-4593-b9af-cfdffdad60df\' and actor_id=(select actor_id from actors where first_name=\'" + actor.split()[0] + "\' and last_name=\'" + actor.split()[1] + "\');"
 
             cursor.execute(delAct)
             mysql.commit()
         
+        cursor.close()
+    except pymysql.Error as e:
+        print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
+
+def updateRows(updates):
+    try:
+        cursor = mysql.cursor()
+        updateQuery = ""
+        updatesAttr = updates.split(",")
+
+        if updatesAttr[1] == "Rating":
+            updateQuery = "update Ratings set " + updatesAttr[1] + "=" + updatesAttr[2] + " where user_id=\'984088f9-fd95-4593-b9af-cfdffdad60df\' and timestamp=\'" + updatesAttr[0] + "\';"
+        elif updatesAttr[1] == "Review":
+            updateQuery = "update Ratings set " + updatesAttr[1] + "=\'" + updatesAttr[2] + "\' where user_id=\'984088f9-fd95-4593-b9af-cfdffdad60df\' and timestamp=\'" + updatesAttr[0] + "\';"
+        else:
+            updateQuery = "update actors set first_name=\'" + updatesAttr[2].split()[0] + "\', last_name=\'" + updatesAttr[2].split()[1] + "\' where actor_id=(select actor_id from Ratings where timestamp=\'" + updatesAttr[0] + "\');"
+
+
+        cursor.execute(updateQuery)
+        mysql.commit()
+
         cursor.close()
     except pymysql.Error as e:
         print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
@@ -192,6 +215,18 @@ def queryDelete():
         deleteActors(deleteNames.split(','))
 
     #res = showRowsToDelete()
+    return render_template("insert.html")
+
+@app.route('/update', methods=["POST", "GET"])
+def updateQuery():
+    res = showRowsToDelete()
+    return render_template("update.html", res=res)
+
+@app.route('/update_submit', methods=["POST", "GET"])
+def updateQueryDone():
+    if request.method == "POST":
+        updates = request.form.get("updates")
+        updateRows(updates)
     return render_template("insert.html")
 
 if __name__ == '__main__':
