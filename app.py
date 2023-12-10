@@ -55,8 +55,24 @@ def addMovie(movieTitle, genre):
     try:
         cursor = mysql.cursor()
 
-        moviesTable = "insert into Movies values(\'" + movie_id + "\',\'" + movieTitle + "\',\'" + genre + "\');"
+        moviesTableProc = """
+        CREATE PROCEDURE InsertMovie(
+            IN movie_id VARCHAR(50),
+            IN movieTitle VARCHAR(50),
+            IN genre VARCHAR(50)
+        )
+        BEGIN
+            INSERT INTO movies
+            VALUES (movie_id, movieTitle, genre);
+        END;
+        """
+        cursor.execute(moviesTableProc)
+
+        moviesTable = "CALL InsertMovie(\'" + movie_id + "\', \'" + movieTitle + "\', \'" + genre + "\');"
+
         cursor.execute(moviesTable)
+        cursor.execute("DROP PROCEDURE InsertMovie;")
+
         mysql.commit()
         results = cursor.fetchall()
 
@@ -75,14 +91,25 @@ def addActorMovie(a_id, m_id):
     try:
         cursor = mysql.cursor()
 
-        # actor_movie_proc = "CREATE PROCEDURE InsertActorMovie(IN p_actor_movie_id VARCHAR(50),IN p_actor_id VARCHAR(50),IN p_movie_id VARCHAR(50)\n BEGIN\n INSERT INTO Actor_Movie VALUES (p_actor_movie_id, p_actor_id, p_movie_id);\n END;"
-        # print()
-        # print(actor_movie_proc)
-        # print()
+        actor_movie_proc = """
+        CREATE PROCEDURE InsertActorMovie(
+            IN p_actor_movie_id VARCHAR(50),
+            IN p_actor_id VARCHAR(50),
+            IN p_movie_id VARCHAR(50)
+        )
+        BEGIN
+            INSERT INTO Actor_Movie
+            VALUES (p_actor_movie_id, p_actor_id, p_movie_id);
+        END;
+        """
 
-        actor_movie_table = "insert into Actor_Movie values(\'" + actor_movie_id + "\',\'" + a_id + "\',\'" + m_id + "\');"
+        cursor.execute(actor_movie_proc)
+
+        #actor_movie_table = "insert into Actor_Movie values(\'" + actor_movie_id + "\',\'" + a_id + "\',\'" + m_id + "\');"
+        actor_movie_table = "CALL InsertActorMovie(\'" + actor_movie_id + "\', \'" + a_id + "\', \'" + m_id + "\');"
 
         cursor.execute(actor_movie_table)
+        cursor.execute("DROP PROCEDURE InsertActorMovie;")
         mysql.commit()
 
         #print("Stored Procedure has been created!")
@@ -183,6 +210,116 @@ def updateRows(updates):
     except pymysql.Error as e:
         print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
 
+#select rating,review from ratings where actor_id=(select actor_id from actors where first_name='' and last_name='');
+def reportActor(actorName):
+    try:
+        cursor = mysql.cursor()
+        #CREATE INDEX ON RATING
+        sqlCreateSecondaryIndex1 = """CREATE INDEX firstNameIndex ON actors(first_name);"""
+        sqlCreateSecondaryIndex2 = """CREATE INDEX lastNameIndex ON actors(last_name);"""
+        cursor.execute(sqlCreateSecondaryIndex1)
+        cursor.execute(sqlCreateSecondaryIndex2)
+
+        reportActorQuery = "select actor_id,rating,review,timestamp from ratings where actor_id=(select actor_id from actors where first_name=\'" + actorName.split()[0] + "\' and last_name=\'" + actorName.split()[1] + "\');"
+
+        cursor.execute(reportActorQuery)
+        mysql.commit()
+
+        results = cursor.fetchall()
+        an = []
+
+        resultsList = [list(i) for i in results]
+        for i in range(len(resultsList)):
+            actorname = "select first_name,last_name from actors where actor_id=\'" + resultsList[i][0] + "\';"
+            cursor.execute(actorname)
+            mysql.commit()
+            an.append(cursor.fetchall())
+            resultsList[i].pop(0)
+
+        anList = [list(i) for i in an]
+        for i in range(len(resultsList)):
+            resultsList[i].insert(0, anList[i][0][0] + " " + anList[i][0][1])
+
+        cursor.execute("DROP INDEX firstNameIndex ON actors;")
+        cursor.execute("DROP INDEX lastNameIndex ON actors;")
+        cursor.close()
+        return resultsList
+    except pymysql.Error as e:
+        print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
+
+#select * from ratings r join actor_movie am on r.actor_id=am.actor_id join movies m on am.movie_id=m.movie_id where m.title='';
+def reportMovie(movieName):
+    try:
+        cursor = mysql.cursor()
+        #CREATE INDEX ON RATING
+        sqlCreateSecondaryIndex = """CREATE INDEX movieTitleIndex ON movies(title);"""
+        cursor.execute(sqlCreateSecondaryIndex)
+
+        reportMovieQuery = "select r.actor_id,r.rating,r.review,m.title,m.genre,r.timestamp from ratings r join actor_movie am on r.actor_id=am.actor_id join movies m on am.movie_id=m.movie_id where m.title=\'" + movieName +"\';"
+
+        cursor.execute(reportMovieQuery)
+        mysql.commit()
+
+        results = cursor.fetchall()
+
+        resultsList = [list(i) for i in results]
+        an = []
+
+        for i in range(len(resultsList)):
+            actorname = "select first_name,last_name from actors where actor_id=\'" + resultsList[i][0] + "\';"
+            cursor.execute(actorname)
+            mysql.commit()
+            an.append(cursor.fetchall())
+            resultsList[i].pop(0)
+
+        anList = [list(i) for i in an]
+        for i in range(len(resultsList)):
+            resultsList[i].insert(0, anList[i][0][0] + " " + anList[i][0][1])
+
+        cursor.execute("DROP INDEX movieTitleIndex ON movies;")
+        cursor.close()
+        return resultsList
+    except pymysql.Error as e:
+        print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
+
+#select * from ratings where rating > <val>;
+def reportRating(ratingVal):
+    try:
+        cursor = mysql.cursor()
+
+        #CREATE INDEX ON RATING
+        sqlCreateSecondaryIndex = """CREATE INDEX ratingIndex ON ratings(rating);"""
+        cursor.execute(sqlCreateSecondaryIndex)
+
+
+        ratingQuery = "select r.actor_id,r.rating,r.review,m.title,m.genre,r.timestamp from ratings r join actor_movie am on r.actor_id=am.actor_id join movies m on am.movie_id=m.movie_id where r.rating >= " + ratingVal +";"
+
+        cursor.execute(ratingQuery)
+        mysql.commit()
+
+        results = cursor.fetchall()
+
+        resultsList = [list(i) for i in results]
+        an = []
+
+        for i in range(len(resultsList)):
+            actorname = "select first_name,last_name from actors where actor_id=\'" + resultsList[i][0] + "\';"
+            cursor.execute(actorname)
+            mysql.commit()
+            an.append(cursor.fetchall())
+            resultsList[i].pop(0)
+
+        anList = [list(i) for i in an]
+        for i in range(len(resultsList)):
+            resultsList[i].insert(0, anList[i][0][0] + " " + anList[i][0][1])
+
+        cursor.execute("DROP INDEX ratingIndex ON ratings;")
+
+        cursor.close()
+        return resultsList
+    except pymysql.Error as e:
+        print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
+
 @app.route('/insert')
 def run():
     return render_template("insert.html")
@@ -228,6 +365,31 @@ def updateQueryDone():
         updates = request.form.get("updates")
         updateRows(updates)
     return render_template("insert.html")
+
+@app.route('/report', methods=["POST", "GET"])
+def report():
+    return render_template("report.html")
+
+@app.route('/report_submit', methods=["POST", "GET"])
+def reportSubmit():
+    actorInfo = []
+    movieInfo = []
+    ratingInfo = []
+
+    if request.method == "POST":
+        if request.form.get("Actor") is not None:
+            actorInfo = reportActor(request.form.get("Actor"))
+        elif request.form.get("Movie") is not None:
+            movieInfo = reportMovie(request.form.get("Movie"))
+        else:
+            ratingInfo = reportRating(request.form.get("Rating"))
+    
+    # print(actorInfo)
+    # print(movieInfo)
+    # print(ratingInfo)
+    return render_template("report.html", actorInfo=actorInfo, movieInfo=movieInfo, ratingInfo=ratingInfo)
+
+
 
 if __name__ == '__main__':
     app.run(debug=False)
