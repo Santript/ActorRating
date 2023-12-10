@@ -18,6 +18,14 @@ mysql = pymysql.connect(
     db = app.config['MYSQL_DB']
 )
 
+try:
+    cursor = mysql.cursor()
+    cursor.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;")
+    mysql.commit()
+except pymysql.Error as e:
+    print("could not close connection error pymysql %d: %s" %(e.args[0], e.args[1]))
+
+
 def addInformation(firstName, lastName, movieTitle, genre, rating, review):
     #add the actor first and last name
     actor_id = addActor(firstName, lastName)
@@ -145,8 +153,8 @@ def showRowsToDelete():
     try:
         cursor = mysql.cursor()
 
-        #reviewTable = "select * from Ratings where user_id=\'" + user_id +"\';"
-        reviewTable = "select * from Ratings where user_id=\'984088f9-fd95-4593-b9af-cfdffdad60df\';"
+        reviewTable = "select * from Ratings where user_id=\'" + user_id +"\';"
+        # reviewTable = "select * from Ratings where user_id=\'984088f9-fd95-4593-b9af-cfdffdad60df\';"
 
         cursor.execute(reviewTable)
         mysql.commit()
@@ -179,8 +187,8 @@ def deleteActors(actorNames):
 
         for actor in actorNames:
             #984088f9-fd95-4593-b9af-cfdffdad60dfs
-            #delAct = "delete from Ratings where user_id=\'" + user_id + "\' and actor_id=(select actor_id from actors where first_name=\'" + actor.split()[0] + "\' and last_name=\'" + actor.split()[1] + "\');"
-            delAct = "delete from Ratings where user_id=\'984088f9-fd95-4593-b9af-cfdffdad60df\' and actor_id=(select actor_id from actors where first_name=\'" + actor.split()[0] + "\' and last_name=\'" + actor.split()[1] + "\');"
+            delAct = "delete from Ratings where user_id=\'" + user_id + "\' and actor_id=(select actor_id from actors where first_name=\'" + actor.split()[0] + "\' and last_name=\'" + actor.split()[1] + "\');"
+            #delAct = "delete from Ratings where user_id=\'984088f9-fd95-4593-b9af-cfdffdad60df\' and actor_id=(select actor_id from actors where first_name=\'" + actor.split()[0] + "\' and last_name=\'" + actor.split()[1] + "\');"
 
             cursor.execute(delAct)
             mysql.commit()
@@ -196,9 +204,9 @@ def updateRows(updates):
         updatesAttr = updates.split(",")
 
         if updatesAttr[1] == "Rating":
-            updateQuery = "update Ratings set " + updatesAttr[1] + "=" + updatesAttr[2] + " where user_id=\'984088f9-fd95-4593-b9af-cfdffdad60df\' and timestamp=\'" + updatesAttr[0] + "\';"
+            updateQuery = "update Ratings set " + updatesAttr[1] + "=" + updatesAttr[2] + " where user_id=\'" + user_id + "\' and timestamp=\'" + updatesAttr[0] + "\';"
         elif updatesAttr[1] == "Review":
-            updateQuery = "update Ratings set " + updatesAttr[1] + "=\'" + updatesAttr[2] + "\' where user_id=\'984088f9-fd95-4593-b9af-cfdffdad60df\' and timestamp=\'" + updatesAttr[0] + "\';"
+            updateQuery = "update Ratings set " + updatesAttr[1] + "=\'" + updatesAttr[2] + "\' where user_id=\'" + user_id + "\' and timestamp=\'" + updatesAttr[0] + "\';"
         else:
             updateQuery = "update actors set first_name=\'" + updatesAttr[2].split()[0] + "\', last_name=\'" + updatesAttr[2].split()[1] + "\' where actor_id=(select actor_id from Ratings where timestamp=\'" + updatesAttr[0] + "\');"
 
@@ -342,7 +350,7 @@ def parseDataInsert():
 @app.route('/delete', methods=["POST", "GET"])
 def parseDeleteData():
     res = showRowsToDelete()
-    #print(res)
+    print(res)
     return render_template("delete.html", res=res)
 
 @app.route('/delete_submit', methods=["POST", "GET"])
@@ -392,4 +400,4 @@ def reportSubmit():
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=False, threaded=True)
